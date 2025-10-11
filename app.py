@@ -69,13 +69,25 @@ def validate_graph():
 def parse_query(qs: str):
     parts = qs.strip().split()
     tokens = {}
-    for p in parts:
+    i = 0
+    while i < len(parts):
+        p = parts[i]
         if ":" in p:
             k, v = p.split(":", 1)
-            tokens[k.lower()] = v
+            k = k.lower().strip()
+            v = v.strip()
+            # If value is empty and there's a next token without ":", use it
+            if v == "" and i + 1 < len(parts) and ":" not in parts[i + 1]:
+                v = parts[i + 1].strip()
+                i += 1  # consume the next token as the value
+            if v:  # only store non-empty values
+                tokens[k] = v
         else:
+            # free text defaults to message filter
             tokens.setdefault("msg", p)
+        i += 1
     return tokens
+
 
 def build_sparql(tokens):
     prefix = 'PREFIX git: <http://example.org/git.owl#>\n'
@@ -93,10 +105,16 @@ def build_sparql(tokens):
     where = []
     if ent == "merge": where.append("?commit a git:MergeCommit .")
     if ent == "initial": where.append("?commit a git:InitialCommit .")
-    if "msg" in tokens: where.append(f'FILTER (CONTAINS(LCASE(STR(?msg)), "{tokens["msg"].lower()}"))')
-    if "author" in tokens: where.append(f'FILTER (LCASE(STR(?authorName)) = "{tokens["author"].lower()}")')
-    if "branch" in tokens: where.append(f'FILTER (STR(?branchName) = "{tokens["branch"]}")')
-    if "repo" in tokens: where.append(f'FILTER (CONTAINS(LCASE(STR(?repoName)), "{tokens["repo"].lower()}"))')
+    if tokens.get("msg"):
+        where.append(f'FILTER(BOUND(?msg) && CONTAINS(LCASE(STR(?msg)), "{tokens["msg"].lower()}"))')
+    if tokens.get("author"):
+        where.append(f'FILTER(BOUND(?authorName) && LCASE(STR(?authorName)) = "{tokens["author"].lower()}")')
+    if tokens.get("branch"):
+        where.append(f'FILTER(BOUND(?branchName) && STR(?branchName) = "{tokens["branch"]}")')
+    if tokens.get("repo"):
+        where.append(f'FILTER(BOUND(?repoName) && CONTAINS(LCASE(STR(?repoName)), "{tokens["repo"].lower()}"))')
+
+
     q = prefix + select + "WHERE {\n  " + "\n  ".join(core + where) + f"\n}}\nLIMIT {limit}\n"
     return q, ent
 
@@ -153,17 +171,62 @@ def entity():
 def search():
     qs = request.args.get("q", "").strip()
     qtxt, rows = None, []
-    ent = "commit"
-    if qs:
-        tokens = parse_query(qs)
-        qtxt, ent = build_sparql(tokens)
-        try:
-            result = g.query(qtxt, initNs={"git": GIT_IRI})
-            for r in result:
+
+    if not qs:
+        return render_template("search.html", qs=qs, qtxt=qtxt, rows=rows)
+
+    # Detect raw SPARQL (user pasted a full query)
+    is_raw_sparql = qs.lower().startswith("prefix") or ("select" in qs.lower()) or ("where" in qs.lower())
+
+    # Small inline parser that correctly handles "branch: main" (value in next token)
+    def _smart_tokens(text: str):
+        parts = text.strip().split()
+        tokens = {}
+        i = 0
+        while i < len(parts):
+            p = parts[i]
+            if ":" in p:
+                k, v = p.split(":", 1)
+                k = k.lower().strip()
+                v = v.strip()
+                # If value missing and next token has no ":", treat that as the value
+                if v == "" and i + 1 < len(parts) and ":" not in parts[i + 1]:
+                    v = parts[i + 1].strip()
+                    i += 1  # consume the next token
+                if v:  # only record non-empty values
+                    tokens[k] = v
+            else:
+                # free text defaults to msg:
+                tokens.setdefault("msg", p)
+            i += 1
+        return tokens
+
+    try:
+        if is_raw_sparql:
+            # Use the query exactly as typed
+            qtxt = qs
+        else:
+            # Use the custom mini-syntax (msg:, branch:, author:, type:, repo:, limit:)
+            tokens = _smart_tokens(qs)
+            qtxt, _ = build_sparql(tokens)  # assumes build_sparql uses BOUND() guards
+
+        # Run query (rdflib)
+        result = g.query(qtxt, initNs={"git": GIT_IRI})
+        for r in result:
+            if r is None:
+                continue
+            try:
                 rows.append([str(c) if c is not None else "" for c in r])
-        except Exception as e:
-            rows = [["Query error", str(e)]]
-    return render_template("search.html", qs=qs, qtxt=qtxt, rows=rows, ent=ent)
+            except TypeError:
+                # Defensive fallback if rdflib returns a weird row shape
+                rows.append(["Error parsing row", str(r)])
+    except Exception as e:
+        rows = [["Query error", str(e)]]
+
+    return render_template("search.html", qs=qs, qtxt=qtxt, rows=rows)
+
+
+
 
 @app.route("/errors")
 def errors():
