@@ -16,10 +16,10 @@ User = onto.User
 InitialCommit = getattr(onto, "InitialCommit", None)
 MergeCommit = getattr(onto, "MergeCommit", None)
 
-# Try reasoning (optional)
+# ---------- REASONER ----------
 def try_reason():
     try:
-        sync_reasoner()  # Java-based reasoner; OK if it fails
+        sync_reasoner()
         return True
     except Exception:
         return False
@@ -28,14 +28,15 @@ REASONER_OK = try_reason()
 
 # ---------- HELPER FUNCTIONS ----------
 def is_initial(c):
-    if InitialCommit and isinstance(c, InitialCommit):
-        return True
-    return len(getattr(c, "hasParent", [])) == 0
+    """True if commit has no parents."""
+    parents = getattr(c, "hasParent", [])
+    return not parents or len(parents) == 0
 
 def is_merge(c):
-    if MergeCommit and isinstance(c, MergeCommit):
-        return True
-    return len(getattr(c, "hasParent", [])) >= 2
+    """True if commit has 2+ parents or message contains 'merge'."""
+    parents = getattr(c, "hasParent", [])
+    msg = commit_msg(c).lower()
+    return len(parents) >= 2 or msg.startswith("merge") or "merge branch" in msg
 
 def commit_author(c):
     a = getattr(c, "madeBy", None)
@@ -70,6 +71,26 @@ def branch_label(b):
         return name[0]
     return name or "(unnamed)"
 
+def display_repo_name(r):
+    """Safely extract a readable repository name, accounting for Owlready2 normalization."""
+    # Try known possible property names (handles both camelCase and lowercase)
+    for prop in ("repoFullName", "repofullname", "repoName", "repositoryName", "hasName"):
+        val = getattr(r, prop, None)
+        if isinstance(val, list) and val:
+            return str(val[0])
+        if isinstance(val, str) and val.strip():
+            return val
+
+    # Fallback: use rdfs:label if present
+    label_val = getattr(r, "label", None)
+    if isinstance(label_val, list) and label_val:
+        return str(label_val[0])
+    if isinstance(label_val, str) and label_val.strip():
+        return label_val
+
+    # Final fallback: use name (the IRI fragment)
+    return str(r.name)
+
 def repo_by_name(rid):
     return getattr(onto, rid, None)
 
@@ -82,13 +103,10 @@ def branch_by_label(name):
 # ---------- VALIDATION ----------
 def validate_graph():
     issues = []
-
-    # Repositories must have ≥1 branch
     for r in Repository.instances():
         if not getattr(r, "hasBranch", []):
-            issues.append(("Repository", r.name, "Repository has no branches"))
+            issues.append(("Repository", display_repo_name(r), "Repository has no branches"))
 
-    # Branch rules
     for b in Branch.instances():
         names = getattr(b, "branchName", [])
         inits = getattr(b, "hasInitialCommit", [])
@@ -100,7 +118,6 @@ def validate_graph():
         if len(commits) < 1:
             issues.append(("Branch", branch_label(b), "Branch has no commits"))
 
-    # Commit rules
     for c in Commit.instances():
         errs = []
         if not getattr(c, "madeBy", None) or not c.madeBy:
@@ -109,8 +126,6 @@ def validate_graph():
             errs.append("Missing timestamp")
         if not getattr(c, "commitMessage", None) or not c.commitMessage:
             errs.append("Missing message")
-        if not getattr(c, "updatesFile", None) or not c.updatesFile:
-            errs.append("Missing updated files")
 
         parents = getattr(c, "hasParent", [])
         if is_initial(c) and parents:
@@ -122,7 +137,6 @@ def validate_graph():
 
         if errs:
             issues.append(("Commit", c.name, "; ".join(errs)))
-
     return issues
 
 # ---------- SEARCH DSL ----------
@@ -149,23 +163,34 @@ def parse_query(q):
 
 def search_commits(parsed):
     results = []
-    r_filter = repo_by_name(parsed["repo"]) if parsed["repo"] else None
-    b_filter = branch_by_label(parsed["branch"]) if parsed["branch"] else None
+    repo_kw = (parsed.get("repo") or "").lower()
+    branch_kw = (parsed.get("branch") or "").lower()
 
     for c in Commit.instances():
-        # Filter by repository membership
-        if r_filter:
-            in_repo = False
-            for br in getattr(r_filter, "hasBranch", []):
-                if getattr(br, "hasCommit", []) and c in br.hasCommit:
-                    in_repo = True
+        # Repo filter (matches repoFullName or label)
+        if repo_kw:
+            found = False
+            for r in Repository.instances():
+                name_match = display_repo_name(r).lower()
+                if repo_kw in name_match:
+                    for b in getattr(r, "hasBranch", []):
+                        if getattr(b, "hasCommit", []) and c in b.hasCommit:
+                            found = True
+                            break
+                if found:
                     break
-            if not in_repo:
+            if not found:
                 continue
 
         # Branch filter
-        if b_filter:
-            if not getattr(b_filter, "hasCommit", []) or c not in b_filter.hasCommit:
+        if branch_kw:
+            branch_match = False
+            for b in Branch.instances():
+                label = branch_label(b).lower()
+                if branch_kw in label and getattr(b, "hasCommit", []) and c in b.hasCommit:
+                    branch_match = True
+                    break
+            if not branch_match:
                 continue
 
         # Type filter
@@ -199,12 +224,34 @@ def index():
     for r in Repository.instances():
         brs = getattr(r, "hasBranch", [])
         commit_count = sum(len(getattr(b, "hasCommit", [])) for b in brs)
+
+        # ✅ Prefer repoFullName, then label, then fallback to ID
+        display_name = None
+
+        if hasattr(r, "repoFullName") and r.repoFullName:
+            # Single string (set in builder)
+            display_name = r.repoFullName
+        elif hasattr(r, "label") and r.label:
+            # Label is a list
+            display_name = r.label[0]
+        elif hasattr(r, "repo_name") and r.repo_name:
+            display_name = r.repo_name
+        else:
+            display_name = r.name
+
         repos.append({
             "iri": r.name,
+            "display_name": display_name,
             "branches": len(brs),
             "commits": commit_count
         })
-    return render_template("index.html", repos=repos, app_title="Git-Onto-Logic", reasoner=REASONER_OK)
+
+    return render_template(
+        "index.html",
+        repos=repos,
+        app_title="Git-Onto-Logic",
+        reasoner=REASONER_OK
+    )
 
 @app.route("/repo/<rid>")
 def repo_view(rid):
@@ -240,14 +287,41 @@ def repo_view(rid):
 def search():
     q = request.args.get("q", "").strip()
     parsed = parse_query(q) if q else {}
-    results = search_commits(parsed) if q else []
-    return render_template("search.html",
-                           q=q,
-                           parsed=parsed,
-                           results=results,
-                           app_title="Git-Onto-Logic",
-                           reasoner=REASONER_OK)
+    commits = search_commits(parsed) if q else []
 
+    results = []
+    for c in commits:
+        # Find which repository and branch the commit belongs to
+        repo_name = "(unknown)"
+        branch_name = "(unknown)"
+        for r in Repository.instances():
+            for b in getattr(r, "hasBranch", []):
+                if getattr(b, "hasCommit", []) and c in b.hasCommit:
+                    repo_name = display_repo_name(r)
+                    branch_name = branch_label(b)
+                    break
+            if repo_name != "(unknown)":
+                break
+
+        results.append({
+            "id": c.name,
+            "author": commit_author(c),
+            "repo": repo_name,
+            "branch": branch_name,
+            "type": "Merge" if is_merge(c) else ("Initial" if is_initial(c) else "Normal"),
+            "msg": commit_msg(c),
+            "ts": commit_ts(c)
+        })
+
+    return render_template(
+        "search.html",
+        q=q,
+        parsed=parsed,
+        results=results,
+        app_title="Git-Onto-Logic",
+        reasoner=REASONER_OK
+    )
+    
 @app.route("/validate")
 def validate():
     issues = validate_graph()

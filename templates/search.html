@@ -12,7 +12,7 @@
     <input
       type="text"
       name="q"
-      value="{{ query or '' }}"
+      value="{{ q or '' }}"
       placeholder="e.g. msg:security type:merge branch:main"
       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
     >
@@ -56,7 +56,7 @@
       <tbody class="divide-y divide-gray-100">
         {% for r in results %}
         <tr class="hover:bg-indigo-50 transition">
-          <td class="px-4 py-2 font-mono text-indigo-700">{{ r.commit }}</td>
+          <td class="px-4 py-2 font-mono text-indigo-700">{{ r.id }}</td>
           <td class="px-4 py-2 font-mono text-gray-700">{{ r.author }}</td>
           <td class="px-4 py-2 text-gray-700">{{ r.repo }}</td>
           <td class="px-4 py-2 font-mono text-gray-700">{{ r.branch }}</td>
@@ -77,8 +77,8 @@
     </table>
   </div>
   {% else %}
-    {% if query %}
-      <p class="text-gray-600 italic mt-6">No results found for <code>{{ query }}</code>.</p>
+    {% if q %}
+      <p class="text-gray-600 italic mt-6">No results found for <code>{{ q }}</code>.</p>
     {% else %}
       <p class="text-gray-600 italic mt-6">Enter a query above to search the knowledge graph.</p>
     {% endif %}
