@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect
 from owlready2 import *
+from rdflib import Graph as RDFGraph, Namespace
 
 # ---------- Locate dataset ----------
 CANDIDATES = [
@@ -12,20 +13,24 @@ DATASET_PATH = next((p for p in CANDIDATES if p and os.path.exists(p)), None)
 if not DATASET_PATH:
     raise FileNotFoundError("Could not find git_dataset.owl. Set $GIT_DATASET or place it next to app.py.")
 
-# ---------- Load ontology / graph ----------
+# ---------- Load ontology (Owlready2) ----------
 onto = get_ontology(DATASET_PATH).load()
 world = onto.world
-g = world.as_rdflib_graph()
+
+# ---------- Separate rdflib graph for SPARQL (avoid Owlready2 UNIQUE constraint) ----------
+gq = RDFGraph()
+gq.parse(DATASET_PATH, format="xml")  # your OWL is RDF/XML
+
 GIT_IRI = "http://example.org/git.owl#"
+GIT = Namespace(GIT_IRI)
 git = onto.get_namespace(GIT_IRI)
 
 # Detect whether hasParent triples exist in the dataset (drives merge/initial logic)
 try:
-    _q = """
+    _res = list(gq.query("""
     PREFIX git: <http://example.org/git.owl#>
     SELECT (COUNT(*) AS ?parents) WHERE { ?c git:hasParent ?p . }
-    """
-    _res = list(g.query(_q))
+    """))
     HAS_PARENTS = int(str(_res[0][0])) > 0 if _res else False
 except Exception:
     HAS_PARENTS = False
@@ -88,7 +93,7 @@ def parse_query(qs: str):
             k, v = p.split(":", 1)
             k = k.lower().strip()
             v = v.strip()
-            # If value is empty and there's a next token without ":", use it
+            # If value is empty and next token has no ":", use it
             if v == "" and i + 1 < len(parts) and ":" not in parts[i + 1]:
                 v = parts[i + 1].strip()
                 i += 1  # consume the next token as the value
@@ -158,14 +163,27 @@ def build_sparql(tokens):
         where.append(
             f'FILTER(BOUND(?msg) && CONTAINS(LCASE(STR(?msg)), "{tokens["msg"].lower()}"))'
         )
+
+    # Author filter with fallback to IRI localname if userLogin missing
     if tokens.get("author"):
+        author = tokens["author"].lower().replace('"', '\\"')
+        # Ensure ?user is bound (mandatory when author filter is used)
+        where.append("?commit git:madeBy ?user .")
+        # Try to get explicit login if present
+        where.append("OPTIONAL { ?user git:userLogin ?authorName . }")
+        # Compute a comparable key: explicit login if present, else localname of the IRI
+        # localname = regex replace everything up to last # or /
         where.append(
-            f'FILTER(BOUND(?authorName) && LCASE(STR(?authorName)) = "{tokens["author"].lower()}")'
+            "BIND(LCASE(IF(BOUND(?authorName), STR(?authorName), "
+            "REPLACE(STR(?user), '^(.*[#/])', ''))) AS ?authorKey)"
         )
+        where.append(f'FILTER(?authorKey = "{author}")')
+
     if tokens.get("branch"):
         where.append(
             f'FILTER(BOUND(?branchName) && STR(?branchName) = "{tokens["branch"]}")'
         )
+
     if tokens.get("repo"):
         where.append(
             f'FILTER(BOUND(?repoName) && CONTAINS(LCASE(STR(?repoName)), "{tokens["repo"].lower()}"))'
@@ -259,22 +277,19 @@ def search():
 
     try:
         if is_raw_sparql:
-            # Use the query exactly as typed
             qtxt = qs
         else:
-            # Use the custom mini-syntax (msg:, branch:, author:, type:, repo:, limit:)
             tokens = _smart_tokens(qs)
             qtxt, _ = build_sparql(tokens)
 
-        # Run query (rdflib)
-        result = g.query(qtxt, initNs={"git": GIT_IRI})
+        # Run query on the pure rdflib graph
+        result = gq.query(qtxt, initNs={"git": GIT})
         for r in result:
             if r is None:
                 continue
             try:
                 rows.append([str(c) if c is not None else "" for c in r])
             except TypeError:
-                # Defensive fallback if rdflib returns a weird row shape
                 rows.append(["Error parsing row", str(r)])
     except Exception as e:
         rows = [["Query error", str(e)]]
