@@ -9,51 +9,61 @@
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
           colors: {
-            primary: '#4F46E5',  // Indigo-600
-            accent: '#FACC15',   // Yellow-400
+            primary: '#3B82F6', // blue-500
+            dark: '#111827',   // gray-900
+            light: '#F9FAFB',  // gray-50
+            border: '#E5E7EB', // gray-200
+          },
+          boxShadow: {
+            card: '0 4px 16px rgba(0,0,0,0.05)',
           },
         },
       },
-    }
+    };
   </script>
 </head>
 
-<body class="bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800 min-h-screen flex flex-col font-sans">
+<body class="bg-light text-dark font-sans flex flex-col min-h-screen">
 
   <!-- NAVBAR -->
-  <nav class="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-      <div class="flex items-center space-x-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 4v16m8-8H4" />
-        </svg>
-        <h1 class="text-xl font-semibold tracking-tight hover:text-yellow-200 transition">Git Ontology Browser</h1>
+  <nav class="bg-white border-b border-border sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="bg-primary/10 p-2 rounded-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+        </div>
+        <h1 class="text-lg font-semibold text-gray-800">Git Ontology Browser</h1>
       </div>
-      <div class="hidden sm:flex space-x-8 text-sm font-medium">
-        <a href="/" class="hover:text-yellow-300 transition">Home</a>
-        <a href="/browse" class="hover:text-yellow-300 transition">Browse</a>
-        <a href="/search" class="hover:text-yellow-300 transition">Search</a>
-        <a href="/errors" class="hover:text-yellow-300 transition">Validate</a>
+
+      <div class="hidden sm:flex items-center space-x-8 text-sm font-medium text-gray-600">
+        <a href="/" class="hover:text-primary transition">Home</a>
+        <a href="/browse" class="hover:text-primary transition">Browse</a>
+        <a href="/search" class="hover:text-primary transition">Search</a>
+        <a href="/errors" class="hover:text-primary transition">Validate</a>
       </div>
     </div>
   </nav>
 
   <!-- MAIN CONTENT -->
   <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-10">
-    <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+    <div class="bg-white rounded-xl shadow-card border border-border p-10 transition hover:shadow-md">
       {% block content %}{% endblock %}
     </div>
   </main>
 
   <!-- FOOTER -->
-  <footer class="bg-white border-t border-gray-200 py-4 text-center text-sm text-gray-500">
-    <div class="flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-3">
-      <span>&copy; 2025 <span class="font-medium text-indigo-600">Git Ontology Browser</span></span>
-      <span class="hidden sm:block">|</span>
-      <span>Built with <span class="text-indigo-600 font-medium">Flask</span> + <span class="text-indigo-600 font-medium">TailwindCSS</span></span>
-    </div>
+  <footer class="bg-white border-t border-border text-center py-6 text-sm text-gray-500">
+    <p class="space-x-1">
+      <span>&copy; 2025 <span class="font-semibold text-primary">Git Ontology Browser</span></span>
+      <span>•</span>
+      <span>Built with <span class="text-primary font-medium">Flask</span> + <span class="text-primary font-medium">TailwindCSS</span></span>
+    </p>
   </footer>
 
 </body>

@@ -61,6 +61,14 @@ def inferred_types(ind):
     except:
         return [t for t in ind.is_a if isinstance(t, ThingClass)]
 
+def find_repo_by_name(name: str):
+    """Find a Repository individual by repoFullName string."""
+    for r in list_instances(onto.Repository):
+        vals = getattr(r, "repoFullName", [])
+        if vals and vals[0] == name:
+            return r
+    return None
+
 def validate_graph():
     errs = []
     for r in list_instances(onto.Repository):
@@ -93,7 +101,7 @@ def parse_query(qs: str):
             k, v = p.split(":", 1)
             k = k.lower().strip()
             v = v.strip()
-            # If value is empty and next token has no ":", use it
+            # If value is empty and there's a next token without ":", use it
             if v == "" and i + 1 < len(parts) and ":" not in parts[i + 1]:
                 v = parts[i + 1].strip()
                 i += 1  # consume the next token as the value
@@ -111,7 +119,7 @@ def build_sparql(tokens):
     limit = int(tokens.get("limit", "50")) if tokens.get("limit") else 50
 
     # Default commit view (columns)
-    select = "SELECT DISTINCT ?commit ?msg ?branchName ?repoName ?authorName\n"
+    select = "SELECT DISTINCT ?repoName ?branchName ?commit ?msg ?authorName\n"
 
     # Core graph pattern; NOTE trailing dot on the last OPTIONAL keeps rdflib happy
     core = [
@@ -172,7 +180,6 @@ def build_sparql(tokens):
         # Try to get explicit login if present
         where.append("OPTIONAL { ?user git:userLogin ?authorName . }")
         # Compute a comparable key: explicit login if present, else localname of the IRI
-        # localname = regex replace everything up to last # or /
         where.append(
             "BIND(LCASE(IF(BOUND(?authorName), STR(?authorName), "
             "REPLACE(STR(?user), '^(.*[#/])', ''))) AS ?authorKey)"
@@ -211,35 +218,80 @@ def browse():
     repos = list_instances(onto.Repository)
     rows = []
     for r in repos:
+        # Prefer repoFullName (string). Fallback to local IRI.
+        if hasattr(r, "repoFullName") and getattr(r, "repoFullName", None):
+            label_text = r.repoFullName[0] if isinstance(r.repoFullName, list) else r.repoFullName
+        else:
+            label_text = local(r)
+
         branches = getattr(r, "hasBranch", [])
         commits = []
         for b in branches:
             commits.extend(getattr(b, "hasCommit", []))
-        label = getattr(r, "repoFullName", [local(r)])[0] if hasattr(r, "repoFullName") else local(r)
-        rows.append((local(r), label, len(branches), len(set(commits))))
-    rows.sort(key=lambda t: t[1].lower())
+
+        rows.append({
+            "iri": local(r),
+            "name": str(label_text),
+            "branches": len(branches),
+            "commits": len(set(commits)),
+        })
+
+    rows.sort(key=lambda t: t["name"].lower())
     return render_template("browse.html", rows=rows)
+
 
 @app.route("/entity")
 def entity():
-    iri = request.args.get("iri", "")
-    if not iri: return redirect("/browse")
-    ind = onto.search_one(iri=GIT_IRI + iri)
-    if not ind: return render_template("entity.html", notfound=True)
+    """Resolve entity by ?name=<repoFullName> first; fallback to ?iri=<local IRI>."""
+    iri  = request.args.get("iri", "")
+    name = request.args.get("name", "")
+
+    ind = None
+    if name:
+        ind = find_repo_by_name(name)
+
+    if ind is None and iri:
+        ind = onto.search_one(iri=GIT_IRI + iri)
+
+    if ind is None:
+        # last-resort: try matching by rdfs:label (some individuals may have it)
+        for i in onto.individuals():
+            if getattr(i, "label", []) and i.label[0] == name:
+                ind = i
+                break
+
+    if ind is None:
+        return render_template("entity.html", notfound=True)
+
     asserted = [t for t in ind.is_a if isinstance(t, ThingClass)]
     inferred = [t for t in inferred_types(ind) if t not in asserted]
+
     obj_rows, data_rows = [], []
     for p in onto.object_properties():
         vals = getattr(ind, p.python_name, [])
         if vals and not isinstance(vals, list): vals = [vals]
-        for v in (vals or []): obj_rows.append((p.name, getattr(v, "label", [local(v)])[0]))
+        for v in (vals or []):
+            obj_rows.append((p.name, getattr(v, "label", [local(v)])[0]))
+
     for p in onto.data_properties():
         vals = getattr(ind, p.python_name, [])
         if vals and not isinstance(vals, list): vals = [vals]
-        for v in (vals or []): data_rows.append((p.name, v))
-    return render_template("entity.html", name=getattr(ind, "label", [local(ind)])[0],
-                           iri=local(ind), asserted=asserted, inferred=inferred,
-                           obj_rows=obj_rows, data_rows=data_rows)
+        for v in (vals or []):
+            data_rows.append((p.name, v))
+
+    # Nice display name: repoFullName > rdfs:label > local IRI
+    display_name = getattr(ind, "repoFullName", None)
+    display_name = display_name[0] if display_name else getattr(ind, "label", [local(ind)])[0]
+
+    return render_template(
+        "entity.html",
+        name=display_name,
+        iri=local(ind),
+        asserted=asserted,
+        inferred=inferred,
+        obj_rows=obj_rows,
+        data_rows=data_rows
+    )
 
 @app.route("/search")
 def search():

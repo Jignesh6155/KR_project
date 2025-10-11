@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-2xl font-semibold mb-4">Repositories</h2>
-
-<div class="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">
-  <table class="min-w-full divide-y divide-gray-200">
-    <thead class="bg-gray-100">
+<h2 class="text-xl font-semibold mb-4">Repositories</h2>
+<div class="overflow-x-auto">
+  <table class="min-w-full text-sm border border-gray-200 rounded">
+    <thead class="bg-gray-50">
       <tr>
-        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">IRI</th>
-        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Name</th>
-        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">#Branches</th>
-        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">#Commits</th>
+        <th class="px-3 py-2 text-left">Repository</th>
+        <th class="px-3 py-2 text-left">#Branches</th>
+        <th class="px-3 py-2 text-left">#Commits</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-gray-100">
-      {% for iri,label,b,c in rows %}
-      <tr class="hover:bg-gray-50">
-        <td class="px-4 py-2 text-indigo-600"><a href="/entity?iri={{ iri }}">{{ iri }}</a></td>
-        <td class="px-4 py-2">{{ label }}</td>
-        <td class="px-4 py-2">{{ b }}</td>
-        <td class="px-4 py-2">{{ c }}</td>
+    <tbody>
+      {% for row in rows %}
+      <tr class="odd:bg-white even:bg-gray-50">
+        <td class="px-3 py-2">
+          <a class="text-indigo-600 hover:underline" href="/entity?name={{ row.name|urlencode }}">{{ row.name }}</a>
+        </td>
+        <td class="px-3 py-2">{{ row.branches }}</td>
+        <td class="px-3 py-2">{{ row.commits }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endblock %}
+

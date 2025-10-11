@@ -1,36 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-2xl font-semibold mb-4">Search</h2>
+<h3 class="text-lg font-semibold mb-4">Search</h3>
 
-<form class="flex space-x-2 mb-6">
-  <input name="q" size="80" value="{{ qs }}"
-         class="flex-grow border border-gray-300 rounded-md px-3 py-2 focus:ring focus:ring-indigo-200"
-         placeholder="type:merge branch:main msg:security limit:25">
-  <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md">Run</button>
+<form class="mb-6">
+  <input class="border rounded px-3 py-2 w-3/4" name="q" value="{{ qs }}" placeholder="type:merge branch:main msg:security limit:25">
+  <button class="ml-2 px-3 py-2 rounded bg-indigo-600 text-white">Run</button>
 </form>
 
 {% if qtxt %}
-  <p class="font-semibold mb-2">SPARQL Query</p>
-  <pre class="bg-gray-100 p-3 rounded text-sm overflow-x-auto border border-gray-200 mb-6">{{ qtxt }}</pre>
+  <details class="mb-4">
+    <summary class="cursor-pointer text-sm text-gray-600">SPARQL</summary>
+    <pre class="bg-gray-50 p-3 rounded border mt-2 text-xs overflow-x-auto">{{ qtxt }}</pre>
+  </details>
 {% endif %}
 
-{% if rows %}
-  <h4 class="font-semibold mb-2">Results ({{ rows|length }})</h4>
-  <div class="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">
-    <table class="min-w-full divide-y divide-gray-200">
-      <tbody class="divide-y divide-gray-100">
-        {% for row in rows %}
-        <tr class="hover:bg-gray-50">{% for col in row %}<td class="px-4 py-2 text-sm">{{ col }}</td>{% endfor %}</tr>
-        {% endfor %}
+{% if rows and rows|length > 0 %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm border border-gray-200 rounded">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left">Repository</th>
+          <th class="px-3 py-2 text-left">Branch</th>
+          <th class="px-3 py-2 text-left">Commit</th>
+          <th class="px-3 py-2 text-left">Message</th>
+          <th class="px-3 py-2 text-left">Author</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in rows %}
+        {# row order now: repoName, branchName, commit, msg, authorName #}
+        <tr class="odd:bg-white even:bg-gray-50">
+          <td class="px-3 py-2">
+            {% set repo = row[0] %}
+            {% if repo %}
+              <a class="text-indigo-600 hover:underline" href="/entity?name={{ repo|urlencode }}">{{ repo }}</a>
+            {% else %}
+              <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2">{{ row[1] or '' }}</td>
+          <td class="px-3 py-2">
+            {% set sha = row[2] %}
+            {% if sha %}
+              {{ sha.split('#')[-1][:7] }}
+            {% else %}
+              <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2">{{ row[3] or '' }}</td>
+          <td class="px-3 py-2">{{ row[4] or '' }}</td>
+        </tr>
+      {% endfor %}
       </tbody>
     </table>
   </div>
 {% elif qs %}
-  <p class="italic text-gray-500 mt-4">No results found.</p>
+  <p class="text-gray-500 italic">No results.</p>
 {% endif %}
 
-<p class="mt-6 text-sm text-gray-500">
-  Supported filters: <code>msg:</code> <code>author:</code> <code>type:</code>
-  <code>branch:</code> <code>repo:</code> <code>limit:</code>
+<p class="mt-4 text-sm text-gray-600">
+  Supported: <code>msg:</code> <code>author:</code> <code>type:</code> <code>branch:</code> <code>repo:</code> <code>limit:</code>
 </p>
 {% endblock %}
