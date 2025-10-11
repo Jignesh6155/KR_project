@@ -19,6 +19,18 @@ g = world.as_rdflib_graph()
 GIT_IRI = "http://example.org/git.owl#"
 git = onto.get_namespace(GIT_IRI)
 
+# Detect whether hasParent triples exist in the dataset (drives merge/initial logic)
+try:
+    _q = """
+    PREFIX git: <http://example.org/git.owl#>
+    SELECT (COUNT(*) AS ?parents) WHERE { ?c git:hasParent ?p . }
+    """
+    _res = list(g.query(_q))
+    HAS_PARENTS = int(str(_res[0][0])) > 0 if _res else False
+except Exception:
+    HAS_PARENTS = False
+
+# Try reasoning (optional)
 try:
     sync_reasoner()
     REASONER_STATE = "Inferences attempted"
@@ -88,34 +100,78 @@ def parse_query(qs: str):
         i += 1
     return tokens
 
-
 def build_sparql(tokens):
     prefix = 'PREFIX git: <http://example.org/git.owl#>\n'
     ent = tokens.get("type", "commit").lower()
     limit = int(tokens.get("limit", "50")) if tokens.get("limit") else 50
+
+    # Default commit view (columns)
     select = "SELECT DISTINCT ?commit ?msg ?branchName ?repoName ?authorName\n"
+
+    # Core graph pattern; NOTE trailing dot on the last OPTIONAL keeps rdflib happy
     core = [
         "?branch a git:Branch ; git:hasCommit ?commit .",
         "OPTIONAL { ?commit git:commitMessage ?msg . }",
         "OPTIONAL { ?branch git:branchName ?branchName . }",
         "?repo a git:Repository ; git:hasBranch ?branch .",
         "OPTIONAL { ?repo git:repoFullName ?repoName . }",
-        "OPTIONAL { ?commit git:madeBy ?user . OPTIONAL { ?user git:userLogin ?authorName . }}",
+        "OPTIONAL { ?commit git:madeBy ?user . OPTIONAL { ?user git:userLogin ?authorName . }} .",
     ]
+
     where = []
-    if ent == "merge": where.append("?commit a git:MergeCommit .")
-    if ent == "initial": where.append("?commit a git:InitialCommit .")
+
+    # ----- Entity-type constraints -----
+    if ent == "merge":
+        if HAS_PARENTS:
+            where.append("""
+            {
+              ?commit a git:MergeCommit .
+            } UNION {
+              ?commit git:hasParent ?p1 ;
+                      git:hasParent ?p2 .
+              FILTER(?p1 != ?p2)
+            } UNION {
+              FILTER(BOUND(?msg) && REGEX(LCASE(STR(?msg)), "^(merge( pull request)?|merge branch|merged )"))
+            }
+            """.strip())
+        else:
+            # No parent edges: rely on message heuristic only
+            where.append("""
+            FILTER(BOUND(?msg) && REGEX(LCASE(STR(?msg)), "^(merge( pull request)?|merge branch|merged )"))
+            """.strip())
+
+    if ent == "initial":
+        if HAS_PARENTS:
+            where.append("""
+            {
+              ?commit a git:InitialCommit .
+            } UNION {
+              FILTER NOT EXISTS { ?commit git:hasParent ?anyParent . }
+            }
+            """.strip())
+        else:
+            # Without parents, only explicit typing is possible
+            where.append("?commit a git:InitialCommit .")
+
+    # ----- Filters (BOUND-safe; ignore empty tokens) -----
     if tokens.get("msg"):
-        where.append(f'FILTER(BOUND(?msg) && CONTAINS(LCASE(STR(?msg)), "{tokens["msg"].lower()}"))')
+        where.append(
+            f'FILTER(BOUND(?msg) && CONTAINS(LCASE(STR(?msg)), "{tokens["msg"].lower()}"))'
+        )
     if tokens.get("author"):
-        where.append(f'FILTER(BOUND(?authorName) && LCASE(STR(?authorName)) = "{tokens["author"].lower()}")')
+        where.append(
+            f'FILTER(BOUND(?authorName) && LCASE(STR(?authorName)) = "{tokens["author"].lower()}")'
+        )
     if tokens.get("branch"):
-        where.append(f'FILTER(BOUND(?branchName) && STR(?branchName) = "{tokens["branch"]}")')
+        where.append(
+            f'FILTER(BOUND(?branchName) && STR(?branchName) = "{tokens["branch"]}")'
+        )
     if tokens.get("repo"):
-        where.append(f'FILTER(BOUND(?repoName) && CONTAINS(LCASE(STR(?repoName)), "{tokens["repo"].lower()}"))')
+        where.append(
+            f'FILTER(BOUND(?repoName) && CONTAINS(LCASE(STR(?repoName)), "{tokens["repo"].lower()}"))'
+        )
 
-
-    q = prefix + select + "WHERE {\n  " + "\n  ".join(core + where) + f"\n}}\nLIMIT {limit}\n"
+    q = prefix + select + "WHERE {\n  " + "\n  ".join(core + where) + "\n}\n" + f"LIMIT {limit}\n"
     return q, ent
 
 # ---------- Routes ----------
@@ -208,7 +264,7 @@ def search():
         else:
             # Use the custom mini-syntax (msg:, branch:, author:, type:, repo:, limit:)
             tokens = _smart_tokens(qs)
-            qtxt, _ = build_sparql(tokens)  # assumes build_sparql uses BOUND() guards
+            qtxt, _ = build_sparql(tokens)
 
         # Run query (rdflib)
         result = g.query(qtxt, initNs={"git": GIT_IRI})
@@ -224,9 +280,6 @@ def search():
         rows = [["Query error", str(e)]]
 
     return render_template("search.html", qs=qs, qtxt=qtxt, rows=rows)
-
-
-
 
 @app.route("/errors")
 def errors():
