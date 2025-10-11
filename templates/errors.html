@@ -1,14 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
-<h3>Validation</h3>
+<h2 class="text-2xl font-semibold mb-4">Validation Results</h2>
+
 {% if errs|length == 0 %}
-  <p>✅ No violations.</p>
+  <p class="text-green-600 font-medium">✅ No violations found.</p>
 {% else %}
-  <table border="1" cellpadding="6" cellspacing="0">
-    <tr><th>Where</th><th>Rule</th><th>Suggested Fix</th></tr>
-    {% for e in errs %}
-      <tr><td>{{ e.where }}</td><td>{{ e.rule }}</td><td>{{ e.fix }}</td></tr>
-    {% endfor %}
-  </table>
+  <div class="overflow-x-auto bg-white shadow rounded-lg border border-gray-200">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-4 py-2 text-left font-semibold text-gray-700">Where</th>
+          <th class="px-4 py-2 text-left font-semibold text-gray-700">Rule</th>
+          <th class="px-4 py-2 text-left font-semibold text-gray-700">Suggested Fix</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for e in errs %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2">{{ e.where }}</td>
+          <td class="px-4 py-2">{{ e.rule }}</td>
+          <td class="px-4 py-2 text-gray-600">{{ e.fix }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endif %}
 {% endblock %}

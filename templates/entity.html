@@ -1,32 +1,54 @@
 {% extends "base.html" %}
 {% block content %}
 {% if notfound %}
-<p><i>Entity not found.</i></p>
+  <p class="text-gray-500 italic">Entity not found.</p>
 {% else %}
-<h3>{{ name }}</h3>
-<p><b>IRI:</b> {{ iri }}</p>
+  <h2 class="text-2xl font-semibold mb-2">{{ name }}</h2>
+  <p class="text-sm text-gray-600 mb-6"><b>IRI:</b> {{ iri }}</p>
 
-<h4>Asserted Types</h4>
-<ul>{% for t in asserted %}<li>{{ t.name }}</li>{% endfor %}</ul>
+  <div class="grid md:grid-cols-2 gap-6">
+    <div>
+      <h3 class="font-semibold text-gray-700 mb-2">Asserted Types</h3>
+      <ul class="list-disc list-inside text-gray-700">
+        {% for t in asserted %}<li>{{ t.name }}</li>{% endfor %}
+      </ul>
+    </div>
+    <div>
+      <h3 class="font-semibold text-gray-700 mb-2">Inferred Types</h3>
+      <ul class="list-disc list-inside text-gray-700">
+        {% if inferred|length == 0 %}
+          <li><i>None</i></li>
+        {% else %}
+          {% for t in inferred %}<li>{{ t.name }}</li>{% endfor %}
+        {% endif %}
+      </ul>
+    </div>
+  </div>
 
-<h4>Inferred Types</h4>
-<ul>
-  {% if inferred|length == 0 %}<li><i>None</i></li>
-  {% else %}{% for t in inferred %}<li>{{ t.name }}</li>{% endfor %}{% endif %}
-</ul>
+  <h3 class="font-semibold text-gray-700 mt-6 mb-2">Object Properties</h3>
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+      <thead class="bg-gray-100">
+        <tr><th class="px-4 py-2 text-left">Property</th><th class="px-4 py-2 text-left">Value</th></tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for p,v in obj_rows %}<tr><td class="px-4 py-2">{{ p }}</td><td class="px-4 py-2">{{ v }}</td></tr>{% endfor %}
+        {% if obj_rows|length == 0 %}<tr><td colspan="2" class="px-4 py-2 italic text-gray-500">None</td></tr>{% endif %}
+      </tbody>
+    </table>
+  </div>
 
-<h4>Object Properties</h4>
-<table border="1" cellpadding="6" cellspacing="0">
-  <tr><th>Property</th><th>Value</th></tr>
-  {% for p,v in obj_rows %}<tr><td>{{ p }}</td><td>{{ v }}</td></tr>{% endfor %}
-  {% if obj_rows|length == 0 %}<tr><td colspan="2"><i>None</i></td></tr>{% endif %}
-</table>
-
-<h4>Data Properties</h4>
-<table border="1" cellpadding="6" cellspacing="0">
-  <tr><th>Property</th><th>Value</th></tr>
-  {% for p,v in data_rows %}<tr><td>{{ p }}</td><td>{{ v }}</td></tr>{% endfor %}
-  {% if data_rows|length == 0 %}<tr><td colspan="2"><i>None</i></td></tr>{% endif %}
-</table>
+  <h3 class="font-semibold text-gray-700 mt-6 mb-2">Data Properties</h3>
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+      <thead class="bg-gray-100">
+        <tr><th class="px-4 py-2 text-left">Property</th><th class="px-4 py-2 text-left">Value</th></tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for p,v in data_rows %}<tr><td class="px-4 py-2">{{ p }}</td><td class="px-4 py-2">{{ v }}</td></tr>{% endfor %}
+        {% if data_rows|length == 0 %}<tr><td colspan="2" class="px-4 py-2 italic text-gray-500">None</td></tr>{% endif %}
+      </tbody>
+    </table>
+  </div>
 {% endif %}
 {% endblock %}

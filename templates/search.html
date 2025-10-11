@@ -1,25 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
-<h3>Search</h3>
-<form>
-  <input name="q" size="80" value="{{ qs }}" placeholder="type:merge branch:main msg:security limit:25">
-  <button>Run</button>
+<h2 class="text-2xl font-semibold mb-4">Search</h2>
+
+<form class="flex space-x-2 mb-6">
+  <input name="q" size="80" value="{{ qs }}"
+         class="flex-grow border border-gray-300 rounded-md px-3 py-2 focus:ring focus:ring-indigo-200"
+         placeholder="type:merge branch:main msg:security limit:25">
+  <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md">Run</button>
 </form>
 
 {% if qtxt %}
-  <p><b>SPARQL</b></p><pre>{{ qtxt }}</pre>
+  <p class="font-semibold mb-2">SPARQL Query</p>
+  <pre class="bg-gray-100 p-3 rounded text-sm overflow-x-auto border border-gray-200 mb-6">{{ qtxt }}</pre>
 {% endif %}
 
 {% if rows %}
-  <h4>Results ({{ rows|length }})</h4>
-  <table border="1" cellpadding="6" cellspacing="0">
-    {% for row in rows %}
-    <tr>{% for col in row %}<td>{{ col }}</td>{% endfor %}</tr>
-    {% endfor %}
-  </table>
+  <h4 class="font-semibold mb-2">Results ({{ rows|length }})</h4>
+  <div class="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">
+    <table class="min-w-full divide-y divide-gray-200">
+      <tbody class="divide-y divide-gray-100">
+        {% for row in rows %}
+        <tr class="hover:bg-gray-50">{% for col in row %}<td class="px-4 py-2 text-sm">{{ col }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% elif qs %}
-  <p><i>No results.</i></p>
+  <p class="italic text-gray-500 mt-4">No results found.</p>
 {% endif %}
 
-<p><code>msg:</code> <code>author:</code> <code>type:</code> <code>branch:</code> <code>repo:</code> <code>limit:</code></p>
+<p class="mt-6 text-sm text-gray-500">
+  Supported filters: <code>msg:</code> <code>author:</code> <code>type:</code>
+  <code>branch:</code> <code>repo:</code> <code>limit:</code>
+</p>
 {% endblock %}
