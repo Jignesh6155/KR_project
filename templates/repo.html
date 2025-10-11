@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Repository Overview -->
+<h2 class="text-2xl font-semibold mb-6">
+  Repository:
+  <span class="font-mono text-indigo-700">{{ repo.name }}</span>
+</h2>
+
+{% if branches %}
+  {% for b in branches %}
+  <!-- Branch Card -->
+  <div class="mb-8">
+    <div class="flex items-center gap-3 mb-2">
+      <h3 class="text-lg font-medium text-gray-800">
+        Branch:
+        <span class="font-mono text-indigo-700">{{ b.name }}</span>
+      </h3>
+      <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{{ b.commit_count }} commits</span>
+      {% if b.initial %}
+        <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+          Initial: {{ b.initial }}
+        </span>
+      {% endif %}
+    </div>
+
+    <!-- Commits Table -->
+    {% if b.commits %}
+    <div class="bg-white border border-gray-100 rounded-xl shadow-sm overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+          <tr>
+            <th class="px-4 py-2 text-left">Commit</th>
+            <th class="px-4 py-2 text-left">Author</th>
+            <th class="px-4 py-2 text-left">Timestamp</th>
+            <th class="px-4 py-2 text-left">Parents</th>
+            <th class="px-4 py-2 text-left">Message</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for c in b.commits %}
+          <tr class="hover:bg-indigo-50/40 transition">
+            <!-- Commit ID + Badges -->
+            <td class="px-4 py-2 font-mono text-indigo-700">
+              {{ c.name }}
+              {% if c.is_merge %}
+                <span class="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Merge</span>
+              {% endif %}
+              {% if c.is_initial %}
+                <span class="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Initial</span>
+              {% endif %}
+            </td>
+
+            <!-- Author -->
+            <td class="px-4 py-2 font-mono text-gray-700">
+              {{ c.author }}
+            </td>
+
+            <!-- Timestamp -->
+            <td class="px-4 py-2 font-mono text-gray-600">
+              {{ c.ts }}
+            </td>
+
+            <!-- Parents -->
+            <td class="px-4 py-2 font-mono text-gray-600">
+              {% if c.parents %}
+                {% for p in c.parents %}
+                  {{ p }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              {% else %}
+                <span class="text-gray-400 italic">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Message -->
+            <td class="px-4 py-2 text-gray-800">
+              {{ c.msg }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="text-gray-500 italic mt-2">No commits found for this branch.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="text-gray-600 italic">No branches found for this repository.</p>
+{% endif %}
+{% endblock %}
