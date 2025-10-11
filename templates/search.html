@@ -1,87 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="max-w-6xl mx-auto mt-8">
+<h3>Search</h3>
+<form>
+  <input name="q" size="80" value="{{ qs }}" placeholder="type:merge branch:main msg:security limit:25">
+  <button>Run</button>
+</form>
 
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-6">
-    <h2 class="text-2xl font-semibold text-gray-800">Search the Knowledge Graph</h2>
-  </div>
+{% if qtxt %}
+  <p><b>SPARQL</b></p><pre>{{ qtxt }}</pre>
+{% endif %}
 
-  <!-- Search Bar -->
-  <form action="/search" method="get" class="flex items-center gap-3 mb-8">
-    <input
-      type="text"
-      name="q"
-      value="{{ q or '' }}"
-      placeholder="e.g. msg:security type:merge branch:main"
-      class="flex-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-    >
-    <button
-      type="submit"
-      class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition"
-    >
-      Search
-    </button>
-  </form>
+{% if rows %}
+  <h4>Results ({{ rows|length }})</h4>
+  <table border="1" cellpadding="6" cellspacing="0">
+    {% for row in rows %}
+    <tr>{% for col in row %}<td>{{ col }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </table>
+{% elif qs %}
+  <p><i>No results.</i></p>
+{% endif %}
 
-  <!-- Help Text -->
-  <div class="bg-indigo-50 border border-indigo-100 text-indigo-800 text-sm rounded-lg p-4 mb-8">
-    <p class="font-semibold mb-1">Search Syntax:</p>
-    <ul class="list-disc list-inside leading-relaxed">
-      <li><code>msg:&lt;text&gt;</code> – Search in commit messages</li>
-      <li><code>author:&lt;username&gt;</code> – Find commits by user</li>
-      <li><code>type:merge</code> / <code>type:initial</code> / <code>type:normal</code> – Filter inferred commit types</li>
-      <li><code>branch:&lt;branch&gt;</code> – Limit to a branch</li>
-      <li><code>repo:&lt;id&gt;</code> – Limit to a specific repository</li>
-      <li><code>limit:&lt;num&gt;</code> – Limit number of results</li>
-    </ul>
-    <p class="mt-2 italic text-gray-600">Example: <code>msg:vulnerability type:merge branch:main</code></p>
-  </div>
-
-  {% if results %}
-  <!-- Results Table -->
-  <div class="bg-white border border-gray-100 rounded-xl shadow-sm overflow-x-auto">
-    <table class="min-w-full text-sm">
-      <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
-        <tr>
-          <th class="px-4 py-2 text-left">Commit</th>
-          <th class="px-4 py-2 text-left">Author</th>
-          <th class="px-4 py-2 text-left">Repository</th>
-          <th class="px-4 py-2 text-left">Branch</th>
-          <th class="px-4 py-2 text-left">Type</th>
-          <th class="px-4 py-2 text-left">Message</th>
-          <th class="px-4 py-2 text-left">Timestamp</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100">
-        {% for r in results %}
-        <tr class="hover:bg-indigo-50 transition">
-          <td class="px-4 py-2 font-mono text-indigo-700">{{ r.id }}</td>
-          <td class="px-4 py-2 font-mono text-gray-700">{{ r.author }}</td>
-          <td class="px-4 py-2 text-gray-700">{{ r.repo }}</td>
-          <td class="px-4 py-2 font-mono text-gray-700">{{ r.branch }}</td>
-          <td class="px-4 py-2">
-            {% if r.type == 'Merge' %}
-              <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Merge</span>
-            {% elif r.type == 'Initial' %}
-              <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Initial</span>
-            {% else %}
-              <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Commit</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-2 text-gray-800">{{ r.msg }}</td>
-          <td class="px-4 py-2 font-mono text-gray-600">{{ r.ts }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-    {% if q %}
-      <p class="text-gray-600 italic mt-6">No results found for <code>{{ q }}</code>.</p>
-    {% else %}
-      <p class="text-gray-600 italic mt-6">Enter a query above to search the knowledge graph.</p>
-    {% endif %}
-  {% endif %}
-</section>
+<p><code>msg:</code> <code>author:</code> <code>type:</code> <code>branch:</code> <code>repo:</code> <code>limit:</code></p>
 {% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Repositories</h3>
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr><th>IRI</th><th>Name</th><th>#Branches</th><th>#Commits</th></tr>
+  {% for iri,label,b,c in rows %}
+  <tr>
+    <td><a href="/entity?iri={{ iri }}">{{ iri }}</a></td>
+    <td>{{ label }}</td><td>{{ b }}</td><td>{{ c }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

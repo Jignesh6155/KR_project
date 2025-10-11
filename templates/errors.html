@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Validation</h3>
+{% if errs|length == 0 %}
+  <p>✅ No violations.</p>
+{% else %}
+  <table border="1" cellpadding="6" cellspacing="0">
+    <tr><th>Where</th><th>Rule</th><th>Suggested Fix</th></tr>
+    {% for e in errs %}
+      <tr><td>{{ e.where }}</td><td>{{ e.rule }}</td><td>{{ e.fix }}</td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+{% endblock %}

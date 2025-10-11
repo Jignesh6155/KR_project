@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+{% if notfound %}
+<p><i>Entity not found.</i></p>
+{% else %}
+<h3>{{ name }}</h3>
+<p><b>IRI:</b> {{ iri }}</p>
+
+<h4>Asserted Types</h4>
+<ul>{% for t in asserted %}<li>{{ t.name }}</li>{% endfor %}</ul>
+
+<h4>Inferred Types</h4>
+<ul>
+  {% if inferred|length == 0 %}<li><i>None</i></li>
+  {% else %}{% for t in inferred %}<li>{{ t.name }}</li>{% endfor %}{% endif %}
+</ul>
+
+<h4>Object Properties</h4>
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr><th>Property</th><th>Value</th></tr>
+  {% for p,v in obj_rows %}<tr><td>{{ p }}</td><td>{{ v }}</td></tr>{% endfor %}
+  {% if obj_rows|length == 0 %}<tr><td colspan="2"><i>None</i></td></tr>{% endif %}
+</table>
+
+<h4>Data Properties</h4>
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr><th>Property</th><th>Value</th></tr>
+  {% for p,v in data_rows %}<tr><td>{{ p }}</td><td>{{ v }}</td></tr>{% endfor %}
+  {% if data_rows|length == 0 %}<tr><td colspan="2"><i>None</i></td></tr>{% endif %}
+</table>
+{% endif %}
+{% endblock %}

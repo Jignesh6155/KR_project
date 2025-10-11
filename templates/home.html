@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Dataset Loaded</h3>
+<ul>
+  <li>Repositories: {{ counts.repos }}</li>
+  <li>Branches: {{ counts.branches }}</li>
+  <li>Commits: {{ counts.commits }}</li>
+  <li>Users: {{ counts.users }}</li>
+  <li>Files: {{ counts.files }}</li>
+  <li>Reasoner: {{ counts.reasoner }}</li>
+  <li>Source: {{ counts.dataset }}</li>
+</ul>
+
+<h4>Quick Search</h4>
+<form action="/search">
+  <input name="q" size="80" placeholder="e.g. type:merge branch:main msg:security limit:25">
+  <button>Run</button>
+</form>
+<p><code>msg:</code> <code>author:</code> <code>type:</code> <code>branch:</code> <code>repo:</code> <code>limit:</code></p>
+{% endblock %}
