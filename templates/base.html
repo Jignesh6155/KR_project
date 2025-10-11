@@ -1,70 +1,117 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>{{ title or "Git Ontology Browser" }}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          },
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
           colors: {
-            primary: '#3B82F6', // blue-500
-            dark: '#111827',   // gray-900
-            light: '#F9FAFB',  // gray-50
-            border: '#E5E7EB', // gray-200
+            brand:   '#3B82F6',   /* blue-500 */
+            borderc: '#E5E7EB',   /* gray-200 */
+            panel:   '#FFFFFF',   /* white */
+            page:    '#F8FAFC',   /* slate-50-ish */
           },
           boxShadow: {
-            card: '0 4px 16px rgba(0,0,0,0.05)',
+            card: '0 8px 24px rgba(15, 23, 42, 0.08)',
           },
-        },
-      },
-    };
+        }
+      }
+    }
   </script>
 </head>
 
-<body class="bg-light text-dark font-sans flex flex-col min-h-screen">
+<body class="h-full bg-page text-slate-800 font-sans">
+  <div class="min-h-screen flex">
 
-  <!-- NAVBAR -->
-  <nav class="bg-white border-b border-border sticky top-0 z-50 shadow-sm">
-    <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
-      <div class="flex items-center space-x-3">
-        <div class="bg-primary/10 p-2 rounded-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <!-- Sidebar -->
+    <aside class="w-64 shrink-0 hidden md:flex md:flex-col bg-panel border-r border-borderc">
+      <div class="px-5 py-5 flex items-center gap-3 border-b border-borderc">
+        <div class="p-2 rounded-lg bg-brand text-white shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
           </svg>
         </div>
-        <h1 class="text-lg font-semibold text-gray-800">Git Ontology Browser</h1>
+        <div>
+          <div class="font-semibold leading-tight">Git Ontology</div>
+          <div class="text-xs text-slate-500">Knowledge Graph Browser</div>
+        </div>
       </div>
 
-      <div class="hidden sm:flex items-center space-x-8 text-sm font-medium text-gray-600">
-        <a href="/" class="hover:text-primary transition">Home</a>
-        <a href="/browse" class="hover:text-primary transition">Browse</a>
-        <a href="/search" class="hover:text-primary transition">Search</a>
-        <a href="/errors" class="hover:text-primary transition">Validate</a>
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        <a href="/" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-borderc transition">
+          <span>🏠</span><span>Home</span>
+        </a>
+        <a href="/browse" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-borderc transition">
+          <span>📚</span><span>Browse</span>
+        </a>
+        <a href="/search" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-borderc transition">
+          <span>🔎</span><span>Search</span>
+        </a>
+        <a href="/errors" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-borderc transition">
+          <span>✅</span><span>Validate</span>
+        </a>
+      </nav>
+
+      <div class="px-4 py-4 border-t border-borderc text-xs text-slate-500">
+        © 2025 Git Ontology Browser
       </div>
+    </aside>
+
+    <!-- Main column -->
+    <div class="flex-1 flex flex-col">
+      <!-- Topbar (mobile) -->
+      <header class="md:hidden sticky top-0 z-40 bg-panel border-b border-borderc">
+        <div class="px-4 py-3 flex items-center justify-between">
+          <div class="font-semibold">Git Ontology</div>
+          <div class="flex items-center gap-2 text-sm">
+            <a href="/" class="px-2">Home</a>
+            <a href="/browse" class="px-2">Browse</a>
+            <a href="/search" class="px-2">Search</a>
+            <a href="/errors" class="px-2">Validate</a>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="p-6 md:p-10">
+        <div class="mx-auto max-w-6xl">
+          <div class="rounded-2xl border border-borderc bg-panel shadow-card p-6 md:p-8">
+            {% block content %}{% endblock %}
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer class="mt-auto px-6 md:px-10 pb-8">
+        <div class="mx-auto max-w-6xl text-xs text-slate-500">
+          <div class="rounded-xl border border-borderc bg-panel px-4 py-3">
+            Built with Flask + Tailwind
+          </div>
+        </div>
+      </footer>
     </div>
-  </nav>
+  </div>
 
-  <!-- MAIN CONTENT -->
-  <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-10">
-    <div class="bg-white rounded-xl shadow-card border border-border p-10 transition hover:shadow-md">
-      {% block content %}{% endblock %}
-    </div>
-  </main>
-
-  <!-- FOOTER -->
-  <footer class="bg-white border-t border-border text-center py-6 text-sm text-gray-500">
-    <p class="space-x-1">
-      <span>&copy; 2025 <span class="font-semibold text-primary">Git Ontology Browser</span></span>
-      <span>•</span>
-      <span>Built with <span class="text-primary font-medium">Flask</span> + <span class="text-primary font-medium">TailwindCSS</span></span>
-    </p>
-  </footer>
-
+  <!-- Utility styles for tables & forms -->
+  <style>
+    .tbl { width: 100%; font-size: 0.925rem; border: 1px solid var(--tw-color-borderc, #E5E7EB); border-radius: 0.75rem; overflow: hidden; }
+    .tbl thead { background: #F8FAFC; }
+    .tbl th { text-align: left; font-weight: 600; padding: 0.6rem 0.75rem; border-bottom: 1px solid #E5E7EB; }
+    .tbl td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #E5E7EB; }
+    .tbl tr:nth-child(even) { background: #FCFCFD; }
+    .pill { display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; font-size: 0.75rem; border: 1px solid #E5E7EB; border-radius: 9999px; }
+    .input { width: 100%; border: 1px solid #E5E7EB; background: #FFFFFF; border-radius: 0.75rem; padding: 0.55rem 0.75rem; outline: none; }
+    .input:focus { box-shadow: 0 0 0 4px rgba(59,130,246,.15); border-color: #93C5FD; }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.5rem 0.85rem; background: #FFFFFF; }
+    .btn:hover { background: #F8FAFC; }
+    .btn-primary { border-color: transparent; background: #3B82F6; color: #FFFFFF; }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .codebox { font-size: 0.8rem; background: #0F172A; color: #E2E8F0; border-radius: 0.5rem; padding: 0.75rem; overflow-x: auto; }
+  </style>
 </body>
 </html>

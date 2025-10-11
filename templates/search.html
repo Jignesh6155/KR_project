@@ -2,63 +2,80 @@
 {% block content %}
 <h3 class="text-lg font-semibold mb-4">Search</h3>
 
-<form class="mb-6">
-  <input class="border rounded px-3 py-2 w-3/4" name="q" value="{{ qs }}" placeholder="type:merge branch:main msg:security limit:25">
-  <button class="ml-2 px-3 py-2 rounded bg-indigo-600 text-white">Run</button>
+<form class="mb-6 flex gap-2">
+  <input
+    class="input flex-1"
+    name="q"
+    value="{{ qs }}"
+    placeholder="type:merge branch:main msg:security limit:25" />
+  <button class="btn btn-primary">Run</button>
 </form>
 
 {% if qtxt %}
   <details class="mb-4">
-    <summary class="cursor-pointer text-sm text-gray-600">SPARQL</summary>
-    <pre class="bg-gray-50 p-3 rounded border mt-2 text-xs overflow-x-auto">{{ qtxt }}</pre>
+    <summary class="cursor-pointer text-sm text-slate-600">Show SPARQL</summary>
+    <pre class="codebox mt-2">{{ qtxt }}</pre>
   </details>
 {% endif %}
 
 {% if rows and rows|length > 0 %}
-  <div class="overflow-x-auto">
-    <table class="min-w-full text-sm border border-gray-200 rounded">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-3 py-2 text-left">Repository</th>
-          <th class="px-3 py-2 text-left">Branch</th>
-          <th class="px-3 py-2 text-left">Commit</th>
-          <th class="px-3 py-2 text-left">Message</th>
-          <th class="px-3 py-2 text-left">Author</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for row in rows %}
-        {# row order now: repoName, branchName, commit, msg, authorName #}
-        <tr class="odd:bg-white even:bg-gray-50">
-          <td class="px-3 py-2">
-            {% set repo = row[0] %}
-            {% if repo %}
-              <a class="text-indigo-600 hover:underline" href="/entity?name={{ repo|urlencode }}">{{ repo }}</a>
-            {% else %}
-              <span class="text-gray-400">—</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2">{{ row[1] or '' }}</td>
-          <td class="px-3 py-2">
-            {% set sha = row[2] %}
-            {% if sha %}
-              {{ sha.split('#')[-1][:7] }}
-            {% else %}
-              <span class="text-gray-400">—</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2">{{ row[3] or '' }}</td>
-          <td class="px-3 py-2">{{ row[4] or '' }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+  <!-- Scrollable results container -->
+  <div class="rounded-xl border border-borderc bg-white overflow-hidden">
+    <!-- only this area scrolls -->
+    <div class="max-h-[65vh] overflow-auto">
+      <div class="min-w-full inline-block align-middle">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 sticky top-0 z-10">
+            <tr class="text-slate-700">
+              <th class="px-3 py-2 text-left border-b border-borderc">Repository</th>
+              <th class="px-3 py-2 text-left border-b border-borderc">Branch</th>
+              <th class="px-3 py-2 text-left border-b border-borderc">Commit</th>
+              <th class="px-3 py-2 text-left border-b border-borderc">Message</th>
+              <th class="px-3 py-2 text-left border-b border-borderc">Author</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for row in rows %}
+            {# expected order: repoName, branchName, commit, msg, authorName #}
+            <tr class="odd:bg-white even:bg-slate-50/60">
+              <td class="px-3 py-2 align-top">
+                {% set repo = row[0] %}
+                {% if repo %}
+                  <a class="text-brand hover:underline" href="/entity?name={{ repo|urlencode }}">{{ repo }}</a>
+                {% else %}
+                  <span class="text-slate-400">—</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 align-top">{{ row[1] or '' }}</td>
+              <td class="px-3 py-2 align-top">
+                {% set sha = row[2] %}
+                {% if sha %}
+                  <span class="font-mono text-xs">{{ sha.split('#')[-1][:7] }}</span>
+                {% else %}
+                  <span class="text-slate-400">—</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 align-top">
+                <div class="max-w-[48rem] overflow-hidden text-ellipsis">{{ row[3] or '' }}</div>
+              </td>
+              <td class="px-3 py-2 align-top">{{ row[4] or '' }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 {% elif qs %}
-  <p class="text-gray-500 italic">No results.</p>
+  <p class="text-slate-500 italic">No results.</p>
 {% endif %}
 
-<p class="mt-4 text-sm text-gray-600">
-  Supported: <code>msg:</code> <code>author:</code> <code>type:</code> <code>branch:</code> <code>repo:</code> <code>limit:</code>
+<p class="mt-4 text-sm text-slate-600">
+  Supported: <code class="pill">msg:</code>
+  <code class="pill">author:</code>
+  <code class="pill">type:</code>
+  <code class="pill">branch:</code>
+  <code class="pill">repo:</code>
+  <code class="pill">limit:</code>
 </p>
 {% endblock %}
