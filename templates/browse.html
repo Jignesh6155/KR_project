@@ -18,10 +18,18 @@
         </td>
         <td class="px-3 py-2">{{ row.branches }}</td>
         <td class="px-3 py-2">{{ row.commits }}</td>
+        <td class="px-3 py-2">
+          {% if row.inferred %}
+            {% for inf in row.inferred %}
+              <span class="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">{{ inf }}</span>
+            {% endfor %}
+          {% else %}
+            <span class="text-gray-400">–</span>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endblock %}
-
