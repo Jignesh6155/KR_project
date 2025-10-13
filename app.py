@@ -266,29 +266,70 @@ def home():
 
 @app.route("/browse")
 def browse():
+    """Browse all repositories and display one relation (hasBranch or containsFile)."""
+    try:
+        sync_reasoner(infer_property_values=True)
+        print("✅ Reasoner synced successfully")
+    except Exception as e:
+        print("⚠️ Reasoner unavailable or failed:", e)
+
     repos = list_instances(onto.Repository)
     rows = []
+
     for r in repos:
-        # Prefer repoFullName (string). Fallback to local IRI.
+        # Use repoFullName if available, otherwise local IRI
         if hasattr(r, "repoFullName") and getattr(r, "repoFullName", None):
             label_text = r.repoFullName[0] if isinstance(r.repoFullName, list) else r.repoFullName
         else:
             label_text = local(r)
 
+        # Gather branches and commits
         branches = getattr(r, "hasBranch", [])
         commits = []
         for b in branches:
             commits.extend(getattr(b, "hasCommit", []))
+
+        # 🔹 Pick a sample relation for display
+        if branches:
+            relation = f"hasBranch → {local(branches[0])}"
+        elif getattr(r, "containsFile", []):
+            relation = f"containsFile → {local(r.containsFile[0])}"
+        else:
+            relation = "–"
+
+        # Optional: Inferred classes (skip if not needed)
+        inferred = []
+        try:
+            asserted = [t for t in r.is_a if isinstance(t, ThingClass)]
+            inferred = [
+                t.name
+                for t in r.INDIRECT_is_a
+                if isinstance(t, ThingClass)
+                and t not in asserted
+                and t.name not in ["Repository", "Thing"]
+            ]
+        except Exception:
+            pass
 
         rows.append({
             "iri": local(r),
             "name": str(label_text),
             "branches": len(branches),
             "commits": len(set(commits)),
+            "relation": relation,
+            "inferred": inferred,
         })
 
+    # Sort alphabetically
     rows.sort(key=lambda t: t["name"].lower())
+
+    # Debug printout
+    print("🧩 Repository Browser Summary:")
+    for row in rows:
+        print(f"   - {row['name']} → {row['relation']} | inferred: {row['inferred']}")
+
     return render_template("browse.html", rows=rows)
+
 
 
 @app.route("/entity")

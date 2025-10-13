@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 class="text-xl font-semibold mb-4">Repositories</h2>
+
 <div class="overflow-x-auto">
   <table class="min-w-full text-sm border border-gray-200 rounded">
     <thead class="bg-gray-50">
@@ -8,20 +9,26 @@
         <th class="px-3 py-2 text-left">Repository</th>
         <th class="px-3 py-2 text-left">#Branches</th>
         <th class="px-3 py-2 text-left">#Commits</th>
+        <th class="px-3 py-2 text-left">Relation</th>
       </tr>
     </thead>
     <tbody>
       {% for row in rows %}
       <tr class="odd:bg-white even:bg-gray-50">
         <td class="px-3 py-2">
-          <a class="text-indigo-600 hover:underline" href="/entity?name={{ row.name|urlencode }}">{{ row.name }}</a>
+          <a class="text-indigo-600 hover:underline" href="/entity?name={{ row.name|urlencode }}">
+            {{ row.name }}
+          </a>
         </td>
         <td class="px-3 py-2">{{ row.branches }}</td>
         <td class="px-3 py-2">{{ row.commits }}</td>
+        <td class="px-3 py-2 text-gray-700">{{ row.relation }}</td>
         <td class="px-3 py-2">
           {% if row.inferred %}
             {% for inf in row.inferred %}
-              <span class="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">{{ inf }}</span>
+              <span class="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded mr-1">
+                {{ inf }}
+              </span>
             {% endfor %}
           {% else %}
             <span class="text-gray-400">–</span>
