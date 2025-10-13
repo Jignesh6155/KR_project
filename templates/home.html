@@ -1,25 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-2xl font-semibold mb-4">Dataset Summary</h2>
-<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-  {% for k,v in counts.items() %}
-    <div class="bg-white shadow-sm rounded-lg p-4 border border-gray-200">
-      <h3 class="text-gray-600 font-medium">{{ k|capitalize }}</h3>
-      <p class="text-xl font-bold text-indigo-600">{{ v }}</p>
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center">
+  <h1 class="text-3xl font-bold text-indigo-700 mb-6">Welcome to the Git Ontology Browser</h1>
+  <p class="text-gray-600 mb-10">Explore structured knowledge extracted from GitHub repositories.</p>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-200">
+      <h2 class="text-2xl font-semibold text-indigo-600">{{ counts.repos }}</h2>
+      <p class="text-gray-500 font-medium">Repositories</p>
     </div>
-  {% endfor %}
+    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-200">
+      <h2 class="text-2xl font-semibold text-indigo-600">{{ counts.branches }}</h2>
+      <p class="text-gray-500 font-medium">Branches</p>
+    </div>
+    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-200">
+      <h2 class="text-2xl font-semibold text-indigo-600">{{ counts.commits }}</h2>
+      <p class="text-gray-500 font-medium">Commits</p>
+    </div>
+    <div class="bg-white shadow-md rounded-xl p-6 border border-gray-200">
+      <h2 class="text-2xl font-semibold text-indigo-600">{{ counts.users }}</h2>
+      <p class="text-gray-500 font-medium">Users</p>
+    </div>
+  </div>
+
+    <a href="/search" class="mt-10 inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg shadow-md">
+    Search Graph →
+    </a>
 </div>
-
-<h3 class="text-xl font-semibold mb-2">Quick Search</h3>
-<form action="/search" class="flex space-x-2">
-  <input name="q" size="80"
-         class="flex-grow border border-gray-300 rounded-md px-3 py-2 focus:ring focus:ring-indigo-200"
-         placeholder="e.g. type:merge branch:main msg:security limit:25">
-  <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md">Run</button>
-</form>
-
-<p class="mt-4 text-sm text-gray-500">
-  Supported filters: <code>msg:</code> <code>author:</code> <code>type:</code>
-  <code>branch:</code> <code>repo:</code> <code>limit:</code>
-</p>
 {% endblock %}
