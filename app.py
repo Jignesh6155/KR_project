@@ -458,8 +458,8 @@ def search():
 
 @app.route("/errors")
 def errors():
-    errs = validate_graph()
-    return render_template("errors.html", errs=errs)
+    result = validate_graph()
+    return render_template("errors.html", conforms=False, report=result)
 
 if __name__ == "__main__":
     app.run(debug=True)
@@ -516,11 +516,7 @@ def merged_inferred_type_list(ind):
     return inferred
 
 def inferred_relations(ind):
-    """
-    Relations that appear only after reasoning:
-    reasoned_graph(subject, p, o)  and  NOT in original gq graph.
-    If no reasoner ran, this returns [].
-    """
+
     try:
         rg = onto.world.as_rdflib_graph()
     except Exception:
@@ -539,3 +535,25 @@ def inferred_relations(ind):
     except Exception:
         pass
     return out
+
+def validate_graph():
+    """Run SHACL over ontology and return conformance + report."""
+    data_graph = onto.world.as_rdflib_graph()
+    shapes_path = (Path(__file__).parent.parent / "shacl" / "shapes.ttl").resolve()
+
+    if not shapes_path.exists():
+        return {"conforms": False, "report": f"SHACL file not found: {shapes_path}"}
+
+    # pySHACL returns a tuple, not a dict — unpack it properly
+    conforms, report_graph, report_text = validate(
+        data_graph=data_graph,
+        shacl_graph=str(shapes_path),
+        inference="rdfs",
+        debug=False
+    )
+
+    if isinstance(report_text, bytes):
+        report_text = report_text.decode("utf-8", errors="ignore")
+
+    # ✅ Always return a dictionary (Flask expects mappings for ** unpacking)
+    return {"conforms": bool(conforms), "report": report_text}

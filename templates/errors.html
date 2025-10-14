@@ -1,25 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-2xl font-semibold mb-4">Validation Results</h2>
+<h2 class="text-xl font-semibold mb-4">Data Quality / SHACL Validation</h2>
 
-{% if errs|length == 0 %}
-  <p class="text-green-600 font-medium">✅ No violations found.</p>
+{% if conforms %}
+  <div class="p-4 rounded bg-green-50 text-green-800 border border-green-200">
+    ✅ No violations detected by SHACL.
+  </div>
 {% else %}
-  <div class="overflow-x-auto bg-white shadow rounded-lg border border-gray-200">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-100">
+  <div class="p-4 rounded bg-red-50 text-red-800 border border-red-200 mb-4">
+    ❌ Violations detected — see detailed report below.
+  </div>
+
+  <div class="overflow-x-auto mt-4">
+    <table class="min-w-full border border-gray-300 text-sm">
+      <thead class="bg-gray-100 text-gray-800">
         <tr>
-          <th class="px-4 py-2 text-left font-semibold text-gray-700">Where</th>
-          <th class="px-4 py-2 text-left font-semibold text-gray-700">Rule</th>
-          <th class="px-4 py-2 text-left font-semibold text-gray-700">Suggested Fix</th>
+          <th class="border px-3 py-2 text-left">Where</th>
+          <th class="border px-3 py-2 text-left">Rule</th>
+          <th class="border px-3 py-2 text-left">Suggested Fix</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-gray-100">
-        {% for e in errs %}
-        <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2">{{ e.where }}</td>
-          <td class="px-4 py-2">{{ e.rule }}</td>
-          <td class="px-4 py-2 text-gray-600">{{ e.fix }}</td>
+      <tbody>
+        {% for err in report %}
+        <tr class="odd:bg-white even:bg-gray-50 hover:bg-yellow-50">
+          <td class="border px-3 py-1">{{ err.where }}</td>
+          <td class="border px-3 py-1">{{ err.rule }}</td>
+          <td class="border px-3 py-1">{{ err.fix }}</td>
         </tr>
         {% endfor %}
       </tbody>
